@@ -281,7 +281,7 @@ export default function ChatPage() {
             animate={{ width: 300, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 200, damping: 25 }}
-            className="h-full border-r border-border bg-[#050505] flex flex-col shrink-0 relative z-20"
+            className="h-full border-r border-border bg-card/50 dark:bg-[#050505] flex flex-col shrink-0 relative z-20"
           >
             <div className="p-4 flex items-center justify-between border-b border-border/50">
               <Link href="/" className="flex items-center gap-2 group cursor-pointer">
@@ -300,7 +300,7 @@ export default function ChatPage() {
                 onClick={() => {
                   router.push('/chat');
                 }}
-                className="w-full justify-start gap-2 rounded-full bg-white text-black hover:bg-neutral-200 border-none h-12 shadow-[0_0_20px_-5px_rgba(255,255,255,0.2)]"
+                className="w-full justify-start gap-2 rounded-full bg-foreground text-background hover:bg-foreground/90 border-none h-12 shadow-sm dark:shadow-[0_0_20px_-5px_rgba(255,255,255,0.2)]"
               >
                 <Plus className="h-5 w-5" />
                 <span className="font-medium">New Chat</span>
@@ -417,7 +417,7 @@ export default function ChatPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-col items-center justify-center text-center"
               >
-                <div className="h-16 w-16 rounded-2xl bg-[#090909] border border-border flex items-center justify-center mb-6 shadow-[0_0_30px_-5px_rgba(0,153,255,0.15)] ring-1 ring-primary/20">
+                <div className="h-16 w-16 rounded-2xl bg-card dark:bg-[#090909] border border-border flex items-center justify-center mb-6 shadow-[0_0_30px_-5px_rgba(0,153,255,0.15)] ring-1 ring-primary/20">
                   <Bot className="h-8 w-8 text-primary" />
                 </div>
                 <h2 className="text-2xl md:text-3xl font-heading font-medium tracking-tight mb-2">
@@ -448,7 +448,7 @@ export default function ChatPage() {
                           {(message as any).parts?.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('') || (message as any).text || (message as any).content}
                         </div>
                       ) : (
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-[15px] prose-p:leading-relaxed prose-pre:bg-black/50 prose-pre:border prose-pre:border-border">
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-[15px] prose-p:leading-relaxed prose-pre:bg-muted dark:prose-pre:bg-black/50 prose-pre:border prose-pre:border-border">
                           <ReactMarkdown>
                             {(message as any).parts?.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('') || (message as any).text || (message as any).content}
                           </ReactMarkdown>
@@ -508,7 +508,7 @@ export default function ChatPage() {
                   className="flex flex-wrap gap-2 mb-3"
                 >
                   {files.map((file, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-[#111111] border border-border rounded-xl px-3 py-1.5 text-sm group">
+                    <div key={idx} className="flex items-center gap-2 bg-secondary/50 dark:bg-[#111111] border border-border rounded-xl px-3 py-1.5 text-sm group">
                       <FileText className="h-4 w-4 text-primary" />
                       <span className="truncate max-w-[120px] text-xs font-medium">{file.name}</span>
                       <button 
@@ -523,7 +523,7 @@ export default function ChatPage() {
               )}
             </AnimatePresence>
 
-            <form onSubmit={handleSubmit} className="relative bg-[#090909] border border-border rounded-3xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary/50 transition-all">
+            <form onSubmit={handleSubmit} className="relative bg-card dark:bg-[#090909] border border-border rounded-3xl shadow-lg dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary/50 transition-all">
               <Textarea 
                 value={input}
                 onChange={handleInputChange}
@@ -584,7 +584,7 @@ export default function ChatPage() {
                   type="submit"
                   size="icon" 
                   disabled={isLoading || (!input.trim() && files.length === 0)}
-                  className="rounded-full h-9 w-9 bg-white text-black hover:bg-neutral-200 disabled:opacity-50 disabled:bg-secondary disabled:text-muted-foreground transition-all"
+                  className="rounded-full h-9 w-9 bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50 disabled:bg-secondary disabled:text-muted-foreground transition-all"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
