@@ -36,6 +36,9 @@ const openRunde = localFont({
 export const metadata: Metadata = {
   title: "Nexa Point Chatbot",
   description: "A premium AI assistant interface.",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion, Variants } from "framer-motion";
 import { ArrowRight, Bot, Code, Cpu, Layers, Sparkles, User, Zap, Globe, Atom, Wind, Box, Activity } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -41,8 +42,8 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-background/80 border-b border-border">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <Bot className="h-5 w-5 text-white" />
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center overflow-hidden">
+              <Image src="/logo.png" alt="Nexa Point Logo" width={32} height={32} className="object-cover" />
             </div>
             <span className="font-semibold text-lg tracking-tight">Nexa Point</span>
           </div>
