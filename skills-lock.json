@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "frontend-ui-engineering": {
+      "source": "addyosmani/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-ui-engineering/SKILL.md",
+      "computedHash": "195659873a8fe0bac6947e44731c3e23b97ec2caf2c124ce4c808658c555f98d"
+    },
+    "performance-optimization": {
+      "source": "addyosmani/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/performance-optimization/SKILL.md",
+      "computedHash": "e143bfc3b19f8009b3399bdd96deba13e4edb6cdbd9f7f30b570ba5ea49e3613"
+    }
+  }
+}
