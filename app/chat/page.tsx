@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDropzone } from "react-dropzone";
 import { 
@@ -30,6 +30,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useChat } from '@ai-sdk/react';
+import ReactMarkdown from 'react-markdown';
+import { PersonaId } from "@/lib/personas";
 
 // Dummy data for history
 const DUMMY_HISTORY = [
@@ -40,16 +43,44 @@ const DUMMY_HISTORY = [
 
 export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [input, setInput] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  const [assistant, setAssistant] = useState("General Assistant");
+  const [assistant, setAssistant] = useState<PersonaId>("travel");
   const assistants = [
-    { id: "General Assistant", icon: Sparkles },
-    { id: "Travel Planner", icon: Plane },
-    { id: "Financial Consultant", icon: TrendingUp },
-    { id: "Copywriter", icon: PenTool }
+    { id: "travel", name: "Travel Planner", icon: Plane },
+    { id: "finance", name: "Financial Consultant", icon: TrendingUp },
+    { id: "copywriter", name: "Copywriter", icon: PenTool }
   ];
   const { theme, setTheme } = useTheme();
+
+  const [input, setInput] = useState("");
+  const { messages, sendMessage, status, stop } = useChat();
+
+  const isLoading = status === 'submitted' || status === 'streaming';
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, status]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+  };
+
+  const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
+    if (e) e.preventDefault();
+    if (!input.trim() || isLoading) return;
+    
+    sendMessage(
+      { text: input },
+      { body: { personaId: assistant } }
+    );
+    setInput("");
+  };
 
   // File Dropzone setup
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -173,18 +204,70 @@ export default function ChatPage() {
         <div className="flex-1 overflow-y-auto p-4 md:p-8 min-h-0">
           <div className="max-w-3xl mx-auto space-y-8 pb-4 h-full flex flex-col pt-10 md:pt-20">
             
-            {/* Welcome / Empty State */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center text-center"
-            >
-              <div className="h-16 w-16 rounded-2xl bg-[#090909] border border-border flex items-center justify-center mb-6 shadow-[0_0_30px_-5px_rgba(0,153,255,0.15)] ring-1 ring-primary/20">
-                <Bot className="h-8 w-8 text-primary" />
+            {messages.length === 0 ? (
+              /* Welcome / Empty State */
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center justify-center text-center"
+              >
+                <div className="h-16 w-16 rounded-2xl bg-[#090909] border border-border flex items-center justify-center mb-6 shadow-[0_0_30px_-5px_rgba(0,153,255,0.15)] ring-1 ring-primary/20">
+                  <Bot className="h-8 w-8 text-primary" />
+                </div>
+                <h2 className="text-2xl md:text-3xl font-heading font-medium tracking-tight mb-2">
+                  {assistants.find(a => a.id === assistant)?.name || "Assistant"}
+                </h2>
+                <p className="text-muted-foreground">Select a skill or just start typing.</p>
+              </motion.div>
+            ) : (
+              <div className="space-y-6">
+                {messages.map((message) => (
+                  <div 
+                    key={message.id} 
+                    className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    {message.role === 'assistant' && (
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0 mt-1">
+                        <Bot size={16} className="text-primary" />
+                      </div>
+                    )}
+                    
+                    <div className={`px-5 py-3.5 rounded-2xl max-w-[85%] ${
+                      message.role === 'user' 
+                        ? 'bg-primary text-primary-foreground rounded-tr-sm' 
+                        : 'bg-muted/50 border border-border/50 rounded-tl-sm'
+                    }`}>
+                      {message.role === 'user' ? (
+                        <div className="whitespace-pre-wrap text-[15px]">
+                          {(message as any).parts?.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('') || (message as any).text || (message as any).content}
+                        </div>
+                      ) : (
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-[15px] prose-p:leading-relaxed prose-pre:bg-black/50 prose-pre:border prose-pre:border-border">
+                          <ReactMarkdown>
+                            {(message as any).parts?.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('') || (message as any).text || (message as any).content}
+                          </ReactMarkdown>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                
+                {status === 'submitted' && (
+                  <div className="flex gap-4 justify-start">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0 mt-1">
+                      <Bot size={16} className="text-primary animate-pulse" />
+                    </div>
+                    <div className="px-5 py-4 rounded-2xl max-w-[85%] bg-muted/50 border border-border/50 rounded-tl-sm flex items-center gap-1.5 h-[48px]">
+                      <div className="h-2 w-2 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                      <div className="h-2 w-2 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                      <div className="h-2 w-2 bg-primary/60 rounded-full animate-bounce" />
+                    </div>
+                  </div>
+                )}
+                
+                <div ref={messagesEndRef} className="h-1" />
               </div>
-              <h2 className="text-2xl md:text-3xl font-heading font-medium tracking-tight mb-2">How can I help you today?</h2>
-              <p className="text-muted-foreground">Select a skill or just start typing.</p>
-            </motion.div>
+            )}
 
           </div>
         </div>
@@ -218,18 +301,22 @@ export default function ChatPage() {
               )}
             </AnimatePresence>
 
-            <div className="relative bg-[#090909] border border-border rounded-3xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary/50 transition-all">
+            <form onSubmit={handleSubmit} className="relative bg-[#090909] border border-border rounded-3xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary/50 transition-all">
               <Textarea 
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={handleInputChange}
                 placeholder="Ask Nexa Point..." 
                 className="min-h-[60px] max-h-[200px] w-full resize-none border-0 bg-transparent dark:bg-transparent px-5 py-4 pt-5 focus-visible:ring-0 text-[15px]"
                 rows={1}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    // Handle send
-                    if (input.trim()) setInput("");
+                    if (input.trim() && !isLoading) {
+                      const form = e.currentTarget.form;
+                      if (form) {
+                        form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                      }
+                    }
                   }
                 }}
               />
@@ -237,6 +324,7 @@ export default function ChatPage() {
               <div className="flex items-center justify-between px-4 pb-3 pt-1">
                 <div className="flex items-center gap-1">
                   <Button 
+                    type="button"
                     variant="ghost" 
                     size="icon" 
                     className="rounded-full h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
@@ -249,7 +337,7 @@ export default function ChatPage() {
                   
                   <DropdownMenu>
                     <DropdownMenuTrigger className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-secondary/50 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors border border-transparent hover:border-border cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
-                      <span>{assistant}</span>
+                      <span>{assistants.find(a => a.id === assistant)?.name || assistant}</span>
                       <ChevronDown className="h-3 w-3" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-56 bg-card border-border rounded-xl shadow-xl p-2">
@@ -258,11 +346,11 @@ export default function ChatPage() {
                         return (
                           <DropdownMenuItem 
                             key={ast.id} 
-                            onClick={() => setAssistant(ast.id)}
+                            onClick={() => setAssistant(ast.id as PersonaId)}
                             className={`flex items-center gap-2.5 px-3 py-2.5 text-sm cursor-pointer rounded-lg ${assistant === ast.id ? 'bg-primary/10 text-primary focus:bg-primary/20 focus:text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                           >
                             <Icon className="h-4 w-4" />
-                            <span>{ast.id}</span>
+                            <span>{ast.name}</span>
                           </DropdownMenuItem>
                         )
                       })}
@@ -271,14 +359,15 @@ export default function ChatPage() {
                 </div>
                 
                 <Button 
+                  type="submit"
                   size="icon" 
-                  disabled={!input.trim() && files.length === 0}
+                  disabled={isLoading || (!input.trim() && files.length === 0)}
                   className="rounded-full h-9 w-9 bg-white text-black hover:bg-neutral-200 disabled:opacity-50 disabled:bg-secondary disabled:text-muted-foreground transition-all"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
+            </form>
             
             <div className="text-center mt-3">
               <p className="text-[11px] text-muted-foreground/60">
