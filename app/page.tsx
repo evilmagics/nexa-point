@@ -37,7 +37,16 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/30">
+    <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/30 relative">
+      {/* Background Elements */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <DotPattern className="opacity-30 dark:opacity-20" glow={true} />
+        {/* Vignette effect: darkens the edges towards the center */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,var(--background)_100%)]" />
+        {/* Decorative glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-3xl" />
+      </div>
+
       {/* Header */}
       <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-background/80 border-b border-border">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
@@ -61,9 +70,6 @@ export default function LandingPage() {
       {/* Hero Section */}
       <main className="flex-1">
         <section className="pt-32 pb-20 px-6 overflow-hidden relative">
-          <DotPattern className="absolute inset-0 z-0 opacity-30 dark:opacity-20" />
-          {/* Decorative glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-3xl -z-10 pointer-events-none" />
           
           <motion.div 
             className="container mx-auto max-w-5xl text-center relative z-10"
@@ -114,15 +120,24 @@ export default function LandingPage() {
         {/* Product Demo/Screenshot Placeholder */}
         <section className="py-20 px-6">
           <div className="container mx-auto max-w-5xl">
-            <div className="relative rounded-2xl border border-border bg-card shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] overflow-hidden aspect-video flex items-center justify-center group">
-              <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              <Bot className="h-24 w-24 text-muted-foreground/30" />
-              <div className="absolute top-0 w-full h-12 border-b border-border/50 flex items-center px-4 gap-2 bg-background/50 backdrop-blur-md">
+            <div className="relative rounded-2xl border border-border bg-card shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] hover:shadow-[0_20px_80px_-20px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col group transition-all duration-500 hover:scale-[1.02]">
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-10 pointer-events-none" />
+              <div className="w-full h-12 border-b border-border/50 flex items-center px-4 gap-2 bg-background/80 backdrop-blur-md z-20 shrink-0">
                 <div className="flex gap-1.5">
                   <div className="h-3 w-3 rounded-full bg-red-500/80" />
                   <div className="h-3 w-3 rounded-full bg-yellow-500/80" />
                   <div className="h-3 w-3 rounded-full bg-green-500/80" />
                 </div>
+              </div>
+              <div className="relative w-full bg-background overflow-hidden">
+                <Image 
+                  src="/chat-screenshot.png" 
+                  alt="Nexa Point Chat Interface" 
+                  width={1920}
+                  height={1080}
+                  className="w-full h-auto"
+                  priority
+                />
               </div>
             </div>
           </div>
