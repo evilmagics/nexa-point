@@ -54,6 +54,7 @@ export default function ChatPage() {
   const { theme, setTheme } = useTheme();
 
   const [input, setInput] = useState("");
+  const [chatTitle, setChatTitle] = useState("New Chat");
   const { messages, sendMessage, status, stop, error } = useChat();
 
   const isLoading = status === 'submitted' || status === 'streaming';
@@ -72,9 +73,42 @@ export default function ChatPage() {
     setInput(e.target.value);
   };
 
+  const generateTitle = async (conversationContext: string) => {
+    try {
+      const res = await fetch('/api/chat/title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ context: conversationContext }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.title && data.title !== "New Chat") {
+          setChatTitle(data.title.replace(/["']/g, ''));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to generate title:', error);
+    }
+  };
+
   const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (!input.trim() || isLoading) return;
+    
+    // Auto-generate title only when we have enough context
+    if (chatTitle === "New Chat") {
+      const previousText = messages
+        .map(m => (m as any).parts?.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('') || (m as any).text || (m as any).content)
+        .filter(Boolean)
+        .join('\n');
+      
+      const fullContext = previousText ? `${previousText}\nUser: ${input}` : `User: ${input}`;
+      
+      // Generate if the input has substance (>20 chars) or we are already at the second turn
+      if (fullContext.length > 20 || messages.length >= 2) {
+        generateTitle(fullContext);
+      }
+    }
     
     sendMessage(
       { text: input },
@@ -197,7 +231,7 @@ export default function ChatPage() {
             </Button>
           )}
           <div className="flex items-center gap-2">
-            <span className="font-medium">New Chat</span>
+            <span className="font-medium truncate max-w-[200px] md:max-w-md">{chatTitle}</span>
           </div>
         </header>
 
