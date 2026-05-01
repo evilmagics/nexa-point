@@ -4,6 +4,10 @@
 
 # 🌟 Nexa Point
 
+<div align="center">
+  <img src="public/chat-screenshot.png" alt="Nexa Point Chat Interface" width="800" style="border-radius: 8px;" />
+</div>
+
 Welcome to **Nexa Point**! 🚀 This is an intelligent and beautifully designed AI chatbot application built with modern web technologies. 
 
 This project was developed with a specific purpose in mind: **to successfully complete the final project task for the Hacktiv8 "Maju Bareng AI for Developer" program.** It showcases the integration of powerful generative AI within a sleek, production-ready frontend interface.
