@@ -21,7 +21,8 @@ import {
   Sparkles,
   Plane,
   TrendingUp,
-  PenTool
+  PenTool,
+  AlertTriangle
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ export default function ChatPage() {
   const { theme, setTheme } = useTheme();
 
   const [input, setInput] = useState("");
-  const { messages, sendMessage, status, stop } = useChat();
+  const { messages, sendMessage, status, stop, error } = useChat();
 
   const isLoading = status === 'submitted' || status === 'streaming';
 
@@ -261,6 +262,22 @@ export default function ChatPage() {
                       <div className="h-2 w-2 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.3s]" />
                       <div className="h-2 w-2 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]" />
                       <div className="h-2 w-2 bg-primary/60 rounded-full animate-bounce" />
+                    </div>
+                  </div>
+                )}
+                
+                {/* Error Indicator */}
+                {error && (
+                  <div className="flex gap-4 justify-start">
+                    <div className="h-8 w-8 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20 shrink-0 mt-1">
+                      <Bot size={16} className="text-red-500" />
+                    </div>
+                    <div className="px-5 py-4 rounded-2xl max-w-[85%] bg-red-500/5 border border-red-500/20 rounded-tl-sm text-[15px]">
+                      <div className="font-medium text-red-500 mb-1.5 flex items-center gap-1.5">
+                        <AlertTriangle size={15} />
+                        <span>System Error</span>
+                      </div>
+                      <p className="text-muted-foreground leading-relaxed">{error.message || "An unexpected error occurred."}</p>
                     </div>
                   </div>
                 )}

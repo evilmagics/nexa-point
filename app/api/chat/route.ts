@@ -30,9 +30,9 @@ export async function POST(req: Request) {
     const allowed = await limiter.checkLimit(ip, 20, 60000); // Max 20 requests per minute
 
     if (!allowed) {
-      return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { 
+      return new Response('Rate limit exceeded. Please wait a moment before sending more messages.', { 
         status: 429,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'text/plain' }
       });
     }
 
@@ -59,11 +59,21 @@ export async function POST(req: Request) {
     });
 
     return result.toUIMessageStreamResponse();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Chat API Error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), { 
+    
+    // Check if it's a quota limit error from Google AI
+    const errorMessage = error?.message || '';
+    if (error?.status === 429 || errorMessage.toLowerCase().includes('quota') || errorMessage.toLowerCase().includes('rate limit')) {
+      return new Response('Quota limit reached or rate limited by Google API. Please try again later.', { 
+        status: 429,
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    }
+
+    return new Response('Internal server error. Please try again.', { 
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'text/plain' }
     });
   }
 }
