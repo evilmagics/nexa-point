@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDropzone } from "react-dropzone";
 import { DeleteModal } from "@/components/ui/delete-modal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { 
   Bot, 
   Menu, 
@@ -62,6 +63,9 @@ export default function ChatPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<'all' | string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+
+  const [isConfirmAssistantOpen, setIsConfirmAssistantOpen] = useState(false);
+  const [pendingAssistant, setPendingAssistant] = useState<PersonaId | null>(null);
 
   const { messages, sendMessage, status, stop, error, setMessages } = useChat({
     id: chatId || undefined,
@@ -221,6 +225,29 @@ export default function ChatPage() {
 
   const handleClearAll = () => {
     confirmDelete('all');
+  };
+
+  const handleAssistantSelect = (astId: PersonaId) => {
+    if (astId === assistant) return;
+    
+    if (messages.length > 0) {
+      setPendingAssistant(astId);
+      setIsConfirmAssistantOpen(true);
+    } else {
+      setAssistant(astId);
+    }
+  };
+
+  const executeAssistantChange = () => {
+    if (pendingAssistant) {
+      setAssistant(pendingAssistant);
+      setChatId(crypto.randomUUID());
+      setChatTitle("New Chat");
+      setMessages([]);
+      router.push('/chat');
+    }
+    setIsConfirmAssistantOpen(false);
+    setPendingAssistant(null);
   };
 
   // File Dropzone setup
@@ -541,7 +568,7 @@ export default function ChatPage() {
                         return (
                           <DropdownMenuItem 
                             key={ast.id} 
-                            onClick={() => setAssistant(ast.id as PersonaId)}
+                            onClick={() => handleAssistantSelect(ast.id as PersonaId)}
                             className={`flex items-center gap-2.5 px-3 py-2.5 text-sm cursor-pointer rounded-lg ${assistant === ast.id ? 'bg-primary/10 text-primary focus:bg-primary/20 focus:text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                           >
                             <Icon className="h-4 w-4" />
@@ -578,6 +605,15 @@ export default function ChatPage() {
         onOpenChange={setIsOpen} 
         target={deleteTarget} 
         onConfirm={executeDelete} 
+      />
+
+      <ConfirmModal
+        isOpen={isConfirmAssistantOpen}
+        onOpenChange={setIsConfirmAssistantOpen}
+        title="Change Assistant"
+        description="Selecting a different assistant requires starting a new chat. Your current chat will be saved in history. Do you want to continue?"
+        confirmText="Start New Chat"
+        onConfirm={executeAssistantChange}
       />
     </div>
   );
