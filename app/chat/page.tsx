@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDropzone } from "react-dropzone";
+import { DeleteModal } from "@/components/ui/delete-modal";
 import { 
   Bot, 
   Menu, 
@@ -34,13 +35,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useChat } from '@ai-sdk/react';
 import ReactMarkdown from 'react-markdown';
 import { PersonaId } from "@/lib/personas";
+import { useSearchParams, useRouter } from "next/navigation";
+import { getAllChats, getChatById, saveChat, updateChatTitle, deleteChat, clearAllChats, ChatSession } from "@/lib/storage";
 
-// Dummy data for history
-const DUMMY_HISTORY = [
-  { id: 1, title: "Trip to Japan Planner", date: "Today" },
-  { id: 2, title: "Investment Strategy 2026", date: "Yesterday" },
-  { id: 3, title: "Landing Page Copy", date: "Previous 7 Days" },
-];
+// History list moved to state
 
 export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -53,9 +51,63 @@ export default function ChatPage() {
   ];
   const { theme, setTheme } = useTheme();
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const urlId = searchParams.get("id");
+
   const [input, setInput] = useState("");
   const [chatTitle, setChatTitle] = useState("New Chat");
-  const { messages, sendMessage, status, stop, error } = useChat();
+  const [history, setHistory] = useState<ChatSession[]>([]);
+  const [chatId, setChatId] = useState<string | null>(urlId || (typeof window !== 'undefined' ? crypto.randomUUID() : null));
+
+  const [deleteTarget, setDeleteTarget] = useState<'all' | string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const { messages, sendMessage, status, stop, error, setMessages } = useChat({
+    id: chatId || undefined,
+    onFinish: ({ messages: updatedMessages }) => {
+      // Save chat when a response is finished
+      if (chatId) {
+        saveChat({
+          id: chatId,
+          title: chatTitle,
+          personaId: assistant,
+          messages: updatedMessages,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        });
+        setHistory(getAllChats());
+      }
+    }
+  });
+
+  // Load history on mount
+  useEffect(() => {
+    setHistory(getAllChats());
+  }, []);
+
+  const currentChatIdRef = useRef<string | null>(null);
+  currentChatIdRef.current = chatId;
+
+  // Handle Chat Switching from URL
+  useEffect(() => {
+    if (urlId) {
+      if (currentChatIdRef.current === urlId) return;
+      
+      const savedChat = getChatById(urlId);
+      if (savedChat) {
+        setChatId(urlId);
+        setChatTitle(savedChat.title);
+        setAssistant(savedChat.personaId);
+        setMessages(savedChat.messages);
+      }
+    } else {
+      // New Chat state
+      setChatId(crypto.randomUUID());
+      setChatTitle("New Chat");
+      setMessages([]);
+    }
+  }, [urlId, setMessages]);
 
   const isLoading = status === 'submitted' || status === 'streaming';
 
@@ -83,7 +135,12 @@ export default function ChatPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.title && data.title !== "New Chat") {
-          setChatTitle(data.title.replace(/["']/g, ''));
+          const newTitle = data.title.replace(/["']/g, '');
+          setChatTitle(newTitle);
+          if (chatId) {
+            updateChatTitle(chatId, newTitle);
+            setHistory(getAllChats());
+          }
         }
       }
     } catch (error) {
@@ -94,7 +151,14 @@ export default function ChatPage() {
   const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (!input.trim() || isLoading) return;
+
+    let currentId = chatId;
     
+    // Ensure URL matches the current chatId for new chats
+    if (!urlId && currentId) {
+      router.replace(`/chat?id=${currentId}`, { scroll: false });
+    }
+
     // Auto-generate title only when we have enough context
     if (chatTitle === "New Chat") {
       const previousText = messages
@@ -115,6 +179,48 @@ export default function ChatPage() {
       { body: { personaId: assistant } }
     );
     setInput("");
+
+    // Initial save for new chat
+    if (!urlId && currentId) {
+      saveChat({
+        id: currentId,
+        title: chatTitle,
+        personaId: assistant,
+        messages: [...messages, { id: crypto.randomUUID(), role: 'user', content: input, createdAt: new Date() } as any],
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      });
+      setHistory(getAllChats());
+    }
+  };
+
+  const confirmDelete = (target: 'all' | string) => {
+    setDeleteTarget(target);
+    setIsOpen(true);
+  };
+
+  const executeDelete = () => {
+    if (deleteTarget === 'all') {
+      clearAllChats();
+      setHistory([]);
+      router.push('/chat');
+    } else if (deleteTarget) {
+      deleteChat(deleteTarget);
+      setHistory(getAllChats());
+      if (chatId === deleteTarget) {
+        router.push('/chat');
+      }
+    }
+    setIsOpen(false);
+    setDeleteTarget(null);
+  };
+
+  const handleDeleteChat = (idToDelete: string) => {
+    confirmDelete(idToDelete);
+  };
+
+  const handleClearAll = () => {
+    confirmDelete('all');
   };
 
   // File Dropzone setup
@@ -163,7 +269,12 @@ export default function ChatPage() {
             </div>
 
             <div className="p-4">
-              <Button className="w-full justify-start gap-2 rounded-full bg-white text-black hover:bg-neutral-200 border-none h-12 shadow-[0_0_20px_-5px_rgba(255,255,255,0.2)]">
+              <Button 
+                onClick={() => {
+                  router.push('/chat');
+                }}
+                className="w-full justify-start gap-2 rounded-full bg-white text-black hover:bg-neutral-200 border-none h-12 shadow-[0_0_20px_-5px_rgba(255,255,255,0.2)]"
+              >
                 <Plus className="h-5 w-5" />
                 <span className="font-medium">New Chat</span>
               </Button>
@@ -171,20 +282,53 @@ export default function ChatPage() {
 
             <ScrollArea className="flex-1 px-3">
               <div className="space-y-1 py-2">
-                <div className="flex items-center gap-1.5 px-4 mb-2 mt-4 text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  <p className="text-xs font-medium uppercase tracking-wider">History</p>
+                <div className="flex items-center justify-between px-4 mb-2 mt-4">
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
+                    <p className="text-xs font-medium uppercase tracking-wider">History</p>
+                  </div>
+                  {history.length > 0 && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleClearAll}
+                      className="h-6 px-2 text-[10px] text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                    >
+                      Clear
+                    </Button>
+                  )}
                 </div>
-                {DUMMY_HISTORY.map((chat) => (
-                  <Button
-                    key={chat.id}
-                    variant="ghost"
-                    className="w-full justify-start gap-3 rounded-xl h-12 text-muted-foreground hover:text-foreground hover:bg-secondary/50 font-normal"
-                  >
-                    <MessageSquare className="h-4 w-4 shrink-0" />
-                    <span className="truncate flex-1 text-left">{chat.title}</span>
-                  </Button>
-                ))}
+                {history.map((chat) => {
+                  const Icon = assistants.find(a => a.id === chat.personaId)?.icon || MessageSquare;
+                  return (
+                    <div key={chat.id} className="relative group w-full flex items-center mb-1">
+                      <Button
+                        variant="ghost"
+                        onClick={() => router.push(`/chat?id=${chat.id}`)}
+                        className={`w-full justify-start gap-3 rounded-xl h-12 font-normal transition-all pr-10 ${
+                          chatId === chat.id 
+                            ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span className="truncate flex-1 text-left">{chat.title}</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteChat(chat.id);
+                        }}
+                        className="absolute right-1 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                        title="Delete chat"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             </ScrollArea>
 
@@ -428,6 +572,13 @@ export default function ChatPage() {
           </div>
         </div>
       </main>
+
+      <DeleteModal 
+        isOpen={isOpen} 
+        onOpenChange={setIsOpen} 
+        target={deleteTarget} 
+        onConfirm={executeDelete} 
+      />
     </div>
   );
 }

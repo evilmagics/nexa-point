@@ -39,23 +39,36 @@ export async function POST(req: Request) {
     const { messages, personaId } = await req.json();
     const persona = PERSONAS[personaId as PersonaId] || PERSONAS['travel'];
 
-    // Convert UIMessages (parts) to CoreMessages (content) for compatibility with streamText
+    // Convert UIMessages (v6 style with parts) to CoreMessages (streamText style with content)
     const coreMessages = messages.map((m: any) => {
-      const content = m.content || (m.parts && m.parts
-        .filter((p: any) => p.type === 'text')
-        .map((p: any) => p.text)
-        .join('')) || '';
+      // If content already exists, use it. Otherwise, extract text from parts.
+      let content = m.content;
+      if (!content && m.parts) {
+        content = m.parts
+          .filter((p: any) => p.type === 'text')
+          .map((p: any) => p.text)
+          .join('');
+      }
       
       return {
         role: m.role,
-        content
+        content: content || ''
       };
     });
+
+    // Limit context to the last 15 messages for efficiency
+    const MAX_HISTORY = 15;
+    let limitedMessages = coreMessages.slice(-MAX_HISTORY);
+    
+    // Gemini/Google requires the first message in the conversation (after system) to be 'user'
+    while (limitedMessages.length > 0 && limitedMessages[0].role !== 'user') {
+      limitedMessages.shift();
+    }
 
     const result = await streamText({
       model: google('gemini-2.5-flash'),
       system: persona.systemPrompt,
-      messages: coreMessages,
+      messages: limitedMessages,
     });
 
     return result.toUIMessageStreamResponse();

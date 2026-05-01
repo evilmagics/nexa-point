@@ -7,6 +7,12 @@
       "skillPath": "skills/backend-patterns/SKILL.md",
       "computedHash": "4872c9e2d4b474620f350c5bc625f7d34fc4a4fa5cfa2ff90637ee8b3f4ca143"
     },
+    "documentation": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/documentation/SKILL.md",
+      "computedHash": "fa161ddbf7b596ce43178fe42525aba3c6a9dc3f34f7c2e64de6ecb98c66d71b"
+    },
     "frontend-ui-engineering": {
       "source": "addyosmani/agent-skills",
       "sourceType": "github",
@@ -18,6 +24,12 @@
       "sourceType": "github",
       "skillPath": "skills/performance-optimization/SKILL.md",
       "computedHash": "e143bfc3b19f8009b3399bdd96deba13e4edb6cdbd9f7f30b570ba5ea49e3613"
+    },
+    "product-design": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/product-design/SKILL.md",
+      "computedHash": "9d5573ddcac11802fad935e81a33aa23b2af63afbc1ef0620aefb0a6df5c7c12"
     }
   }
 }
